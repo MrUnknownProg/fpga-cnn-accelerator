@@ -1,4 +1,4 @@
-clear; clc; 
+clear; clc; close all; 
 
 % File paths
 file1 = 'matlab_pool_output.txt'; % Reference/Gold output
