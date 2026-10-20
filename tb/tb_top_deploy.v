@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module tb_conv_debug;
+module tb_top_deploy;
 
     //------------------------------------------------------------
     // CLOCK / RESET
