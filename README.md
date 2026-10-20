@@ -46,7 +46,7 @@ Key features:
 | Output | Argmax -> predicted digit (0-9) |
 
 <!-- Add the CNN architecture image here -->
-![CNN Architecture](assets/Architecture.png) 
+![CNN Architecture](assets/Architechture.png) 
 
 The convolution stage is implemented as a 3x3 systolic array of 9 MAC units:
 
@@ -81,7 +81,7 @@ The design runs as a single pipeline controlled by `top_deploy.v`.
  ![Block Diagram](assets/Block_diagram.png)
 
 <!-- Add the flowchart here -->
-![Flowchart](assets/flowchart.png) 
+![Flowchart](assets/Flowchart.png) 
 
 ---
 
