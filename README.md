@@ -10,12 +10,14 @@ A hardware implementation of a custom, single-filter CNN for MNIST handwritten d
 
 1. [Overview](#overview)
 2. [CNN Architecture](#cnn-architecture)
-3. [Code Flow](#code-flow)
-4. [Repository Structure](#repository-structure)
-5. [Verification Against MATLAB](#verification-against-matlab)
-6. [How to Run](#how-to-run)
-7. [Results](#results)
-8. [FPGA Deployment](#fpga-deployment)
+3. [Block Diagram](#block-diagram)
+4. [Code Flow](#code-flow)
+5. [Repository Structure](#repository-structure)
+6. [Verification Against MATLAB](#verification-against-matlab)
+7. [How to Run](#how-to-run)
+8. [Results](#results)
+9. [FPGA Deployment](#fpga-deployment)
+10. [Authors](#authors)
 
 ---
 
@@ -45,12 +47,15 @@ Key features:
 | Fully connected | 169 -> 10 |
 | Output | Argmax -> predicted digit (0-9) |
 
-<!-- Add the CNN architecture image here -->
-![CNN Architecture](assets/Architechture.png) 
+<p align="center">
+  <img src="assets/Architechture.png" alt="CNN Architecture" width="800">
+</p>
 
 The convolution stage is implemented as a 3x3 systolic array of 9 MAC units:
 
-![Systolic Array](assets/systolic_array.png)
+<p align="center">
+  <img src="assets/systolic_array.png" alt="Systolic Array" width="450">
+</p>
 
 ### How the Systolic Array Works
 
@@ -59,6 +64,26 @@ The convolution stage is implemented as a 3x3 systolic array of 9 MAC units:
 - **Partial sums move top to bottom:** every clock cycle, each MAC adds its product (pixel x weight) to the partial sum from the MAC above and passes the result down.
 - **Each row is delayed by one clock cycle:** row 0 enters immediately, row 1 one cycle later and row 2 two cycles later. This stagger keeps each partial sum aligned with the correct pixels, so the sums accumulate over the right 3x3 window and not over mixed columns.
 - The bottom row of the array holds the finished sums, which are added together to give one convolution output per clock cycle once the pipeline is full.
+
+---
+
+## Block Diagram
+
+The block diagram shows how the modules are connected, from the image memory through the systolic array, pooling and FC engine to the predicted digit.
+
+<p align="center">
+  <img src="assets/Block_diagram.png" alt="Block Diagram" width="800">
+</p>
+
+- **Image memory and row streamer:** the 28 x 28 INT8 image is stored in memory. The row streamer generates the addresses of three consecutive rows, so three pixels are read every clock cycle.
+- **Input stagger:** short delay registers offset the three rows by 0, 1 and 2 clock cycles before they enter the array.
+- **Systolic array:** 9 Vedic MAC units hold the 3x3 kernel loaded from the convolution weight memory. The outputs of the bottom row are summed to give one convolution result.
+- **ReLU:** negative results are clipped to zero.
+- **Line buffer and max pool:** the line buffer keeps the previous row so the max-pool unit can compare a 2x2 window and output one pooled value.
+- **Feature memory:** stores the 169 pooled values (13 x 13).
+- **FC engine:** reads the pooled values together with the FC weight and bias memories and computes 10 class scores using a DSP-mapped multiply-accumulate.
+- **Argmax:** picks the highest score and outputs the predicted digit.
+- **Control:** row/column counters and valid signals track the pipeline, and the `done` and `fc_done` flags show when pooling and the FC stage have finished.
 
 ---
 
@@ -77,11 +102,13 @@ The design runs as a single pipeline controlled by `top_deploy.v`.
 9. **FC engine** (`fc_engine.v`) computes 10 class scores using a DSP-mapped multiply-accumulate and the stored weights and biases.
 10. **Argmax** (`argmax.v`) selects the highest score and outputs the predicted digit.
 
-<!-- Add the block diagram here -->
- ![Block Diagram](assets/Block_diagram.png)
+### Flowchart
 
-<!-- Add the flowchart here -->
-![Flowchart](assets/Flowchart.png) 
+The flowchart shows the order of operations the design follows, from start to the final predicted digit.
+
+<p align="center">
+  <img src="assets/Flowchart.png" alt="Flowchart" width="500">
+</p>
 
 ---
 
@@ -130,8 +157,9 @@ Hardware output is verified against a MATLAB golden model that uses the same qua
 3. `MATLAB/file_compare.m` compares `matlab_pool_output.txt` (golden) with `pool_output.txt` (RTL) and reports the match percentage, MAE, MSE and RMSE.
 4. `MATLAB/FC_mimic.m` feeds the RTL pooled output through the trained FC layer to check the final scores and predicted digit.
 
-<!-- Add the testbench output / verification plot image here -->
-![Output Verification](assets/comparison_output.png)
+<p align="center">
+  <img src="assets/comparison_output.png" alt="Output Verification" width="800">
+</p>
 
 > **Note:** All files used by the MATLAB scripts (`pool_output.txt`, `matlab_pool_output.txt`, the image `.mem` file, `convolution_weights.mem`, `trained_net.mat`, `mnist.mat`) must be in the **same folder** as the MATLAB script you are running, **or** you must update the file paths at the top of each script. A wrong path causes errors such as `Cannot open file` or `File not found`.
 
@@ -170,7 +198,7 @@ RTL pooled output compared against the MATLAB golden model:
 
 | Metric | Value |
 |---|---|
-| Accuracy vs MATLAB golden model | 95.86% (162 / 169 pooled features match exactly) |
+| Accuracy | 95.86% (162 / 169 pooled features match exactly) |
 | Mean Absolute Error (MAE) | 0.086785 |
 | Mean Squared Error (MSE) | 0.402367 |
 | Root Mean Squared Error (RMSE) | 0.634324 |
@@ -188,6 +216,7 @@ The design is set up for the **PYNQ-Z2** board (125 MHz system clock):
 
 ---
 
-## Author
-
-**Rutuj Rotkar** | [GitHub](https://github.com/MrUnknownProg)
+## Authors
+- [Rutuj Rotkar](https://github.com/MrUnknownProg)
+- [Aryan Pandey](https://github.com/Aryan2632)
+- [Satvik Bhusa](https://github.com/Satvikk11)
