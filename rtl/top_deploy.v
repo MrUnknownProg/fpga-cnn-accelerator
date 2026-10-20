@@ -7,12 +7,6 @@ module top_deploy #(
     input  wire              clk,
     input  wire              rst,
     input  wire              en,
-
-//  Port defination
-//    input signed [7:0] img_i,
-//    input signed [7:0] weight_i,
-//    input signed [7:0] fc_bias_i,
-//    input signed [7:0] fc_weights_i,
     
     output [3:0]             digit,
     output                   fc_done,
@@ -26,12 +20,8 @@ module top_deploy #(
     reg signed [7:0]  img_bram    [0:IMG_W*IMG_H-1];
     reg signed [7:0]  weight_bram [0:8];
     
-//    always @ (posedge clk) begin
-//        img_bram = img_i;
-//    end    
-    
     initial begin
-        $readmemb("weights.mem",weight_bram);
+        $readmemb("convolution_weights.mem",weight_bram);
     end
     
     initial begin 
@@ -109,12 +99,6 @@ module top_deploy #(
 
     wire pipe_en = rs_valid_q || draining;
 
-    //=====================================================
-    // Input stagger for the systolic array (conv fix)
-    // Array row r must see its pixels r cycles later than row 0, otherwise the
-    // vertical partial sums mix different image columns (diagonal skew).
-    //   row0 -> in0 (+0)   row1 -> in1 (+1)   row2 -> in2 (+2)
-    //=====================================================
     reg signed [7:0] row1_s, row2_d1, row2_s;
     always @(posedge clk) begin
         if (rst) begin
@@ -158,7 +142,7 @@ module top_deploy #(
         end
     end
 
-    wire signed [19:0] conv_sum = o6 + o7 + o8;   // aligned by the input stagger
+    wire signed [19:0] conv_sum = o6 + o7 + o8;   
     wire signed [19:0] relu_out;
     
     // Right shift to divide accumulator by 2
